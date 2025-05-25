@@ -1,0 +1,116 @@
+/* src/App.css */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    background-color: #f0f2f5;
+    color: #333;
+}
+
+h1 {
+    color: #0056b3;
+    margin-bottom: 20px;
+}
+
+#messages {
+    margin-bottom: 20px;
+    color: #28a745;
+    font-weight: bold;
+    background-color: #e2f0e6;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.board-container {
+    display: flex;
+    gap: 40px;
+    margin-top: 20px;
+}
+
+.board-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.board-label {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #0056b3;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 35px);
+    grid-template-rows: repeat(10, 35px);
+    border: 3px solid #0056b3;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    background-color: white;
+}
+
+.cell {
+    width: 35px;
+    height: 35px;
+    border: 1px solid #c0c0c0;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+    cursor: default; /* Por defecto no clicable */
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Estilos de celda para mi tablero */
+.cell.ship {
+    background-color: #6c757d; /* Gris oscuro para los barcos */
+}
+.cell.hit {
+    background-color: #dc3545; /* Rojo para golpe */
+    color: white;
+}
+.cell.miss {
+    background-color: #007bff; /* Azul claro para agua */
+    color: white;
+}
+
+/* Estilos de celda para el tablero enemigo */
+.cell.targettable {
+    cursor: pointer;
+    background-color: #e9ecef; /* Un gris muy claro */
+}
+
+.cell.targettable:hover {
+    background-color: #ffc107; /* Amarillo al pasar el ratón */
+    border-color: #ffb300;
+}
+
+#controls {
+    margin-top: 30px;
+}
+
+button {
+    padding: 12px 25px;
+    font-size: 1.1em;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}

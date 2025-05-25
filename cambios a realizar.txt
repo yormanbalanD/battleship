@@ -1,0 +1,12 @@
+Parte 1
+
+- ALANYS
+* Creando la interfaz del arsenal (Existen tres tipos: artilleria, avion y bomba nuclear, debes hacer nada mas lo visual,
+ usa el estado arsenalSeleccionado y setArsenalSeleccionado para cambiar entre los tres tipos Cuando se presione un arsenal el boton debe de 
+ cambiar a un color mas oscuro, imaginatelo como si fuera un juego real)
+* Modificar la funcion de  aleatoriedad de los barcos, hacer que exista un minimo de una casilla entre los barcos para que estos no se superpongan
+
+
+- YORMAN
+* Aumentar maximo del tablero a 4 personas
+* Añadir funcionalidad al arsenal
