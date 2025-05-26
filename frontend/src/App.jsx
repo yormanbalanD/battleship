@@ -42,46 +42,96 @@ function App() {
     [isMyTurn]
   ); // Regenerar memo si isMyTurn cambia
 
-  // Lógica básica para posicionar barcos (ejemplo aleatorio)
+  // Lógica para posicionar barcos aleatoriamente con separación
   const placeShipsRandomly = () => {
-    const tempBoard = JSON.parse(JSON.stringify(initialBoard)); // Copia profunda
-    const shipSizes = [5, 4, 3, 3, 2]; // Ej. Portaaviones, Acorazado, etc.
+    const tempBoard = JSON.parse(JSON.stringify(initialBoard)); // Copia profunda para trabajar
+    const boardSize = 10; // Tamaño del tablero
+    const shipSizes = [5, 4, 3, 3, 2]; // Tamaños de los barcos
+
+    // Función auxiliar para verificar si una celda está dentro de los límites del tablero
+    const isValidCell = (x, y) => {
+      return x >= 0 && x < boardSize && y >= 0 && y < boardSize;
+    };
+
+    // Función auxiliar para verificar si alguna casilla adyacente (incluyendo diagonales) ya está ocupada por un barco
+    const hasAdjacentShip = (board, x, y) => {
+      // Definir los 8 vecinos (incluyendo diagonales)
+      const neighbors = [
+        { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, // Arriba-Izquierda, Arriba, Arriba-Derecha
+        { dx: -1, dy: 0 },                    { dx: 1, dy: 0 },  // Izquierda, Derecha
+        { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }   // Abajo-Izquierda, Abajo, Abajo-Derecha
+      ];
+
+      for (const neighbor of neighbors) {
+        const nx = x + neighbor.dx;
+        const ny = y + neighbor.dy;
+
+        // Si la celda vecina es válida y está ocupada por un barco
+        if (isValidCell(nx, ny) && board[ny][nx] === "S") {
+          return true; // Se encontró un barco adyacente
+        }
+      }
+      return false; // No se encontraron barcos adyacentes
+    };
 
     shipSizes.forEach((size) => {
       let placed = false;
-      while (!placed) {
+      let attempts = 0; // Para evitar bucles infinitos si no se puede colocar
+      const maxAttempts = 1000; // Límite de intentos por barco
+
+      while (!placed && attempts < maxAttempts) {
+        attempts++;
         const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
         const startX = Math.floor(
-          Math.random() * (10 - (orientation === "horizontal" ? size : 0))
+          Math.random() * (boardSize - (orientation === "horizontal" ? size : 0))
         );
         const startY = Math.floor(
-          Math.random() * (10 - (orientation === "vertical" ? size : 0))
+          Math.random() * (boardSize - (orientation === "vertical" ? size : 0))
         );
 
         let canPlace = true;
-        let cellsToPlace = [];
+        let cellsToOccupy = []; // Celdas que el barco intentaría ocupar
 
         for (let i = 0; i < size; i++) {
           const currentX = orientation === "horizontal" ? startX + i : startX;
           const currentY = orientation === "vertical" ? startY + i : startY;
 
-          if (
-            currentX >= 10 ||
-            currentY >= 10 ||
-            tempBoard[currentY][currentX] === "S"
-          ) {
+          // 1. Verificar límites del tablero
+          if (!isValidCell(currentX, currentY)) {
             canPlace = false;
             break;
           }
-          cellsToPlace.push({ x: currentX, y: currentY });
+
+          // 2. Verificar que la casilla no esté ya ocupada por otro barco
+          if (tempBoard[currentY][currentX] === "S") {
+            canPlace = false;
+            break;
+          }
+
+          // 3. **Verificar que NO haya barcos adyacentes a esta celda**
+          if (hasAdjacentShip(tempBoard, currentX, currentY)) {
+            canPlace = false;
+            break;
+          }
+
+          cellsToOccupy.push({ x: currentX, y: currentY });
         }
 
+        // Si todas las verificaciones pasaron, colocamos el barco
         if (canPlace) {
-          cellsToPlace.forEach((cell) => (tempBoard[cell.y][cell.x] = "S"));
+          cellsToOccupy.forEach((cell) => (tempBoard[cell.y][cell.x] = "S"));
           placed = true;
         }
       }
+
+      // Opcional: Manejar el caso si no se pudo colocar un barco después de muchos intentos
+      if (!placed) {
+        console.warn(`No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`);
+        // Podrías lanzar un error, intentar de nuevo con un tablero limpio,
+        // o simplemente continuar sin ese barco. Para juegos simples, una advertencia es suficiente.
+      }
     });
+
     setMyBoard(tempBoard);
     return tempBoard;
   };
@@ -233,7 +283,6 @@ function App() {
           </button>
         )}
       </div>
-      
 
       <Arsenal
         arsenalSeleccionado={arsenalSeleccionado}

@@ -97,7 +97,7 @@ h1 {
 button {
     padding: 12px 25px;
     font-size: 1.1em;
-    background-color: #28a745;
+    background-color: #7289da;
     color: white;
     border: none;
     border-radius: 5px;
@@ -107,7 +107,7 @@ button {
 }
 
 button:hover {
-    background-color: #218838;
+    background-color: rgb(9, 57, 97);
 }
 
 button:disabled {
