@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import "./App.css"; // Para estilos básicos
 import Tablero from "./components/Tablero";
 import Arsenal from "./components/Arsenal";
+import Inicio from './components/Inicio';
 
 const socket = io("http://localhost:3000"); // Conecta al servidor Express.js
 
@@ -20,6 +21,8 @@ function App() {
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [showPlaceShipsButton, setShowPlaceShipsButton] = useState(false);
   const [arsenalSeleccionado, setArsenalSeleccionado] = useState("artilleria");
+
+  const [pagina, setPagina] = useState('inicio');
 
   // Función para crear/renderizar el tablero
   const renderBoard = useCallback(
@@ -259,6 +262,10 @@ function App() {
       socket.off("error_message");
     };
   }, [myPlayerId, gameId, isMyTurn]); // Dependencias para useEffect
+
+  if (pagina === 'inicio') {
+    return <Inicio />
+  }
 
   return (
     <div className="App">
