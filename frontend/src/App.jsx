@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { io } from "socket.io-client";
 import "./App.css"; // Para estilos básicos
-import Tablero from "./components/Tablero";
 import Arsenal from "./components/Arsenal";
-import Inicio from './components/Inicio';
+import Inicio from "./components/Inicio";
+import Tablero from "./components/Tablero";
 
 const socket = io("http://localhost:3000"); // Conecta al servidor Express.js
 
@@ -22,28 +22,7 @@ function App() {
   const [showPlaceShipsButton, setShowPlaceShipsButton] = useState(false);
   const [arsenalSeleccionado, setArsenalSeleccionado] = useState("artilleria");
 
-  const [pagina, setPagina] = useState('inicio');
-
-  // Función para crear/renderizar el tablero
-  const renderBoard = useCallback(
-    (boardData, isMyBoard, clickHandler = null) => {
-      return (
-        <div className="board">
-          {boardData.map((row, rowIndex) => (
-            <Tablero
-              isMyBoard={isMyBoard}
-              clickHandler={clickHandler}
-              isMyTurn={isMyTurn}
-              row={row}
-              rowIndex={rowIndex}
-              key={rowIndex}
-            />
-          ))}
-        </div>
-      );
-    },
-    [isMyTurn]
-  ); // Regenerar memo si isMyTurn cambia
+  const [pagina, setPagina] = useState("game");
 
   // Lógica para posicionar barcos aleatoriamente con separación
   const placeShipsRandomly = () => {
@@ -60,9 +39,14 @@ function App() {
     const hasAdjacentShip = (board, x, y) => {
       // Definir los 8 vecinos (incluyendo diagonales)
       const neighbors = [
-        { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, // Arriba-Izquierda, Arriba, Arriba-Derecha
-        { dx: -1, dy: 0 },                    { dx: 1, dy: 0 },  // Izquierda, Derecha
-        { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }   // Abajo-Izquierda, Abajo, Abajo-Derecha
+        { dx: -1, dy: -1 },
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: -1 }, // Arriba-Izquierda, Arriba, Arriba-Derecha
+        { dx: -1, dy: 0 },
+        { dx: 1, dy: 0 }, // Izquierda, Derecha
+        { dx: -1, dy: 1 },
+        { dx: 0, dy: 1 },
+        { dx: 1, dy: 1 }, // Abajo-Izquierda, Abajo, Abajo-Derecha
       ];
 
       for (const neighbor of neighbors) {
@@ -86,7 +70,8 @@ function App() {
         attempts++;
         const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
         const startX = Math.floor(
-          Math.random() * (boardSize - (orientation === "horizontal" ? size : 0))
+          Math.random() *
+            (boardSize - (orientation === "horizontal" ? size : 0))
         );
         const startY = Math.floor(
           Math.random() * (boardSize - (orientation === "vertical" ? size : 0))
@@ -129,7 +114,9 @@ function App() {
 
       // Opcional: Manejar el caso si no se pudo colocar un barco después de muchos intentos
       if (!placed) {
-        console.warn(`No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`);
+        console.warn(
+          `No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`
+        );
         // Podrías lanzar un error, intentar de nuevo con un tablero limpio,
         // o simplemente continuar sin ese barco. Para juegos simples, una advertencia es suficiente.
       }
@@ -263,23 +250,34 @@ function App() {
     };
   }, [myPlayerId, gameId, isMyTurn]); // Dependencias para useEffect
 
-  if (pagina === 'inicio') {
-    return <Inicio />
+  if (pagina === "inicio") {
+    return <Inicio />;
   }
 
   return (
     <div className="App">
       <h1>Batalla Naval</h1>
-      <div id="messages">{messages}</div>
+      <div id="messages" onClick={() =>{ console.log(myBoard) }}>{messages}</div>
 
       <div className="board-container">
         <div>
           <div className="board-label">Tu Tablero</div>
-          {renderBoard(myBoard, true)}
+          <Tablero
+            dataTablero={myBoard}
+            // clickHandler={clickHandler}
+            isMyBoard={true}
+            isMyTurn={isMyTurn}
+            arsenalSeleccionado={arsenalSeleccionado}
+          />
         </div>
         <div>
           <div className="board-label">Tablero Enemigo</div>
-          {renderBoard(opponentBoardView, false, handleAttackClick)}
+          <Tablero
+            dataTablero={opponentBoardView}
+            clickHandler={handleAttackClick}
+            isMyTurn={isMyTurn}
+            arsenalSeleccionado={arsenalSeleccionado}
+          />
         </div>
       </div>
 

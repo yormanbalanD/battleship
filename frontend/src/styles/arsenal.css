@@ -1,13 +1,16 @@
 /* Contenedor principal del panel */
 .arsenal-panel-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #2c2f33; /* Fondo oscuro tipo juego */
+  background-color: #2c2f33;
+  /* Fondo oscuro tipo juego */
   color: #ffffff;
   border-radius: 10px;
   padding: 25px;
   margin: 20px auto;
-  width: 90%; /* Usa un porcentaje alto para que se alargue */
-  max-width: 900px; /* Aumenta el ancho máximo significativamente */
+  width: 90%;
+  /* Usa un porcentaje alto para que se alargue */
+  max-width: 900px;
+  /* Aumenta el ancho máximo significativamente */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   text-align: center;
 }
@@ -22,11 +25,15 @@ h2 {
 /* Contenedor de los botones */
 .arsenal-buttons {
   display: flex;
-  flex-wrap: wrap; /* Permite que los botones se envuelvan a la siguiente línea */
-  gap: 15px; /* Espacio entre botones */
-  justify-content: center; /* Centra los botones horizontalmente */
+  flex-wrap: wrap;
+  /* Permite que los botones se envuelvan a la siguiente línea */
+  gap: 15px;
+  /* Espacio entre botones */
+  justify-content: center;
+  /* Centra los botones horizontalmente */
   margin-bottom: 20px;
-  flex-direction: row; /* **Asegura que siempre estén en fila** */
+  flex-direction: row;
+  /* **Asegura que siempre estén en fila** */
 }
 
 /* Estilo base de los botones */
@@ -35,24 +42,38 @@ h2 {
   color: #ffffff;
   border: 2px solid #55585f;
   border-radius: 8px;
-  padding: 10px 15px; /* Reducido el padding para hacerlos más compactos */
-  font-size: 0.95em; /* Ligeramente reducido el tamaño de la fuente */
+  padding: 10px 15px;
+  /* Reducido el padding para hacerlos más compactos */
+  font-size: 0.95em;
+  /* Ligeramente reducido el tamaño de la fuente */
   font-weight: bold;
   cursor: pointer;
   display: flex;
-  flex-direction: column; /* Icono arriba, texto abajo */
+  flex-direction: column;
+  /* Icono arriba, texto abajo */
   align-items: center;
-  gap: 5px; /* Reducido el espacio entre icono y texto */
-  min-width: 100px; /* Ancho mínimo más pequeño */
-  height: 90px; /* Altura fija para uniformidad si lo deseas */
+  gap: 5px;
+  /* Reducido el espacio entre icono y texto */
+  min-width: 100px;
+  /* Ancho mínimo más pequeño */
+  height: 90px;
+  /* Altura fija para uniformidad si lo deseas */
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
+
 
 /* Efecto hover del botón */
 .arsenal-button:hover {
   background-color: #55585f;
   border-color: #7289da;
   transform: translateY(-2px);
+}
+
+.arsenal-button:disabled {
+  background-color: #86888f;
+  border-color: rgb(240, 133, 133);
+  transform: translateY(0);
+  cursor: default;
 }
 
 /* Estilo del botón seleccionado */
@@ -65,8 +86,10 @@ h2 {
 
 /* Estilo del icono (ahora para PNG, tamaño más pequeño) */
 .arsenal-icon {
-  width: 50px;  /* Ajusta este tamaño para tus PNG */
-  height: 50px; /* Ajusta este tamaño para tus PNG */
+  width: 50px;
+  /* Ajusta este tamaño para tus PNG */
+  height: 50px;
+  /* Ajusta este tamaño para tus PNG */
   object-fit: contain;
 }
 
@@ -93,16 +116,21 @@ h2 {
 @media (max-width: 768px) {
   .arsenal-panel-container {
     padding: 15px;
-    max-width: 700px; /* Ajuste para pantallas medianas */
+    max-width: 700px;
+    /* Ajuste para pantallas medianas */
   }
+
   .arsenal-button {
     font-size: 0.9em;
     padding: 8px 12px;
-    min-width: 90px; /* Ajuste para pantallas medianas */
+    min-width: 90px;
+    /* Ajuste para pantallas medianas */
     height: 80px;
   }
+
   .arsenal-icon {
-    width: 35px; /* Tamaño del icono más pequeño en pantallas medianas */
+    width: 35px;
+    /* Tamaño del icono más pequeño en pantallas medianas */
     height: 35px;
   }
 }
@@ -110,20 +138,27 @@ h2 {
 @media (max-width: 480px) {
   .arsenal-panel-container {
     padding: 10px;
-    max-width: 380px; /* Para pantallas muy pequeñas, quizás no quepan todos en una fila */
+    max-width: 380px;
+    /* Para pantallas muy pequeñas, quizás no quepan todos en una fila */
   }
+
   .arsenal-buttons {
     /* Mantener flex-direction: row; y flex-wrap: wrap; aquí también */
-    gap: 8px; /* Reducir el espacio entre botones en pantallas pequeñas */
+    gap: 8px;
+    /* Reducir el espacio entre botones en pantallas pequeñas */
   }
+
   .arsenal-button {
     font-size: 0.8em;
     padding: 6px 10px;
-    min-width: 70px; /* Ancho mínimo para pantallas muy pequeñas */
+    min-width: 70px;
+    /* Ancho mínimo para pantallas muy pequeñas */
     height: 70px;
   }
+
   .arsenal-icon {
-    width: 30px; /* Tamaño del icono más pequeño en pantallas muy pequeñas */
+    width: 30px;
+    /* Tamaño del icono más pequeño en pantallas muy pequeñas */
     height: 30px;
   }
 }

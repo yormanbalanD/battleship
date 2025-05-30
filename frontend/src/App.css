@@ -67,7 +67,7 @@ h1 {
 }
 
 /* Estilos de celda para mi tablero */
-.cell.ship {
+.cell.ship, .cell.looked {
     background-color: #6c757d; /* Gris oscuro para los barcos */
 }
 .cell.hit {
@@ -83,11 +83,6 @@ h1 {
 .cell.targettable {
     cursor: pointer;
     background-color: #e9ecef; /* Un gris muy claro */
-}
-
-.cell.targettable:hover {
-    background-color: #ffc107; /* Amarillo al pasar el ratón */
-    border-color: #ffb300;
 }
 
 #controls {
