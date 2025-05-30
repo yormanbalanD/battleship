@@ -1,0 +1,74 @@
+
+.inicio-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; 
+  width: 100vw;     
+  
+  background-image: url('../icon/fondo.png'); 
+  background-size: cover; /* Esta propiedad asegura que la imagen cubra todo el espacio */
+  background-repeat: no-repeat;
+  background-position: center; /* Centra la imagen en el fondo */
+
+  font-family: Arial, sans-serif;
+  color: #333; 
+   
+}
+
+
+/* Estilos para el panel */
+.panel {
+  background-color: rgba(255, 255, 255, 0.247); 
+  border-radius: 15px;
+  padding: 40px 60px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px); 
+ 
+  max-width: 90%; 
+  box-sizing: border-box; 
+}
+
+/* Estilos para el título dentro del panel */
+.game-title {
+  font-size: 3em;
+  color: white; 
+  margin-bottom: 30px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* Estilos para el grupo de botones dentro del panel */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; 
+  align-items: center; 
+}
+
+/* Estilos para los botones dentro del panel */
+.game-button {
+  background-color: #7289da; /* Color base del botón */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 30px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease; /* Transiciones suaves */
+  width: 500px; 
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); 
+}
+
+.game-button:hover {
+  background-color: #4660bd; /* Color ligeramente más oscuro al pasar el ratón */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); 
+}
+
+.game-button:active {
+  background-color: #12309b; /* Color más oscuro al hacer clic */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); /* Sombra reducida al hacer clic */
+  transform: translateY(1px); /* Efecto de "presionado" */
+}
