@@ -4,9 +4,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 20px;
     background-color: #f0f2f5;
     color: #333;
+    margin: 0;
 }
 
 h1 {
