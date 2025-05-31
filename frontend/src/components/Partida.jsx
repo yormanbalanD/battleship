@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { io } from "socket.io-client";
 import Tablero from "./Tablero";
+import Arsenal from "./Arsenal";
 
 const socket = io("http://localhost:3000"); // Conecta al servidor Express.js
 const initialBoard = Array(10)
@@ -141,6 +142,7 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
   };
 
   useEffect(() => {
+    return;
     socket.on("connect", () => {
       setMessages("Conectado al servidor.");
     });
