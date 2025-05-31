@@ -1,0 +1,108 @@
+/* Partida.css */
+.App {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #282c34;
+    color: white;
+    min-height: 100vh;
+    font-family: 'Arial', sans-serif;
+}
+
+h1 {
+    color: #61dafb;
+    margin-bottom: 20px;
+}
+
+#messages {
+    background-color: #333;
+    padding: 10px 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    text-align: center;
+    color: #eee;
+}
+
+.game-area-container {
+    display: flex; /* Usamos flexbox para el contenedor principal de juego */
+    gap: 30px; /* Espacio entre el panel de barcos y el resto de la interfaz */
+    width: 100%;
+    max-width: 1200px; /* Ancho máximo para el área de juego */
+    justify-content: center;
+    align-items: flex-start; /* Alinea arriba */
+}
+
+.board-and-controls-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.board-container {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.board-label {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+    color: #61dafb;
+}
+
+#controls {
+    display: flex;
+    flex-direction: column; /* Botones uno debajo del otro */
+    gap: 15px; /* Espacio entre botones */
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 300px; /* Ancho máximo para los botones de control */
+}
+
+#controls button {
+    padding: 12px 20px;
+    font-size: 1em;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#controls button:hover {
+    background-color: #45a049;
+}
+
+/* Estilos para el Arsenal (si no los tienes ya) */
+.arsenal-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 8px;
+}
+
+.arsenal-button {
+    padding: 8px 15px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.arsenal-button:hover {
+    background-color: #da190b;
+}
+
+.arsenal-button.selected {
+    background-color: #ff9800; /* Color diferente para el seleccionado */
+}

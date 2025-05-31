@@ -6,7 +6,7 @@ import Inicio from "./components/Inicio";
 import Partida from "./components/Partida";
 
 function App() {
-  const [pagina, setPagina] = useState("inicio");
+  const [pagina, setPagina] = useState("partida");
   const [isCreadorDeSala, setIsCreadorDeSala] = useState(false);
 
   if (pagina === "inicio") {
