@@ -47,7 +47,7 @@ class GameInstance {
         this.game_id = uuidv4();
         this.owner_sid = owner_sid
         this.players = {
-            [owner_sid]: { board: initialBoard, shipsPlaced: false, hitsReceived: 0 },
+            [owner_sid]: { board: initialBoard, shipsPlaced: false, hitsReceived: 0, game_over: false, hitsDealt: 0 },
         };
         this.turnOrder.push(owner_sid);
         this.currentTurn = -1; // O aleatorio
@@ -66,15 +66,16 @@ class GameInstance {
             this.players[player_sid] = {
                 board: initialBoard,
                 shipsPlaced: false,
-                hitsReceived: 0
+                hitsReceived: 0,
+                game_over: false,
+                hitsDealt: 0,
             }
 
             io.to(this.game_id).emit('player_connected', { player_sid, players: this.players });
             io.to(player_sid).emit('game_found', { game_id: this.game_id, player_sid, players: this.players, message: '¡Encontrada una partida!' })
 
             if (this.players_conectados >= this.max_players) {
-                this.state = "PLAYING";
-                io.to(this.game_id).emit('game_started', { game_id: this.game_id, message: '¡Empezamos la partida! Posiciona tus barcos.', players: this.players });
+                this.startGame();
             }
         }
     }
@@ -103,6 +104,7 @@ class GameInstance {
         if (allShipsPlaced) {
             this.state = "PLAYING";
             io.to(this.game_id).emit('game_state_update', { players: this.players, state: 'PLAYING', message: 'Todos Los jugadores han posicionado sus barcos. ¡Comienza el juego!' });
+            console.log("Game state updated to PLAYING");
             this.notifyTurn();
         }
     }
@@ -123,7 +125,7 @@ class GameInstance {
         });
     }
 
-    processAttack(attacker_sid, player_attacked, x, y) {
+    processAttack(attacker_sid, player_attacked, x, y, type) {
         if (this.turnOrder[this.currentTurn] !== attacker_sid) {
             io.sockets.sockets.get(attacker_sid).emit('error_message', { message: 'No es tu turno.' });
             return;
@@ -174,6 +176,30 @@ class GameInstance {
             this.players_conectados -= 1;
             console.log(`Jugador ${player_sid} desconectado en partida ${this.game_id}`);
         }
+
+        if (this.players_conectados == 0) {
+            if (this.state == "PLAYING") {
+                delete games[this.game_id];
+            } else {
+                const index = waitingGames.findIndex((game) => game.game_id == this.game_id);
+                if (index > -1) {
+                    waitingGames.splice(index, 1);
+                }
+            }
+
+            console.log(`Juego ${this.game_id} terminado.`);
+        }
+    }
+
+    startGame() {
+        const gameIndex = waitingGames.find(game => game.game_id == this.game_id);
+
+        games[this.game_id] = this;
+        waitingGames.splice(gameIndex, 1);
+
+        this.state = "PLAYING";
+        io.to(this.game_id).emit('game_started', { game_id: this.game_id, message: '¡Empezamos la partida! Posiciona tus barcos.', players: this.players });
+        // this.notifyTurn();
     }
 }
 
@@ -235,8 +261,17 @@ io.on('connection', (socket) => {
             waitingPlayers.splice(index, 1);
         }
 
+        waitingGames.forEach((game, index) => {
+            if (game.players[socket.id] != undefined) {
+                game.disconnectPlayer(socket.id);
+                socket.leave(game.game_id);
+                io.to(game.game_id).emit('player_disconnected', { message: 'Un jugador se ha desconectado.' });
+            }
+        })
+
         // Buscar la partida y notificar al otro jugador si aplica
         for (const gameId in games) {
+            console.log(`Buscando juego ${gameId}...`);
             const game = games[gameId];
             if (game.players[socket.id] != undefined) {
                 console.log(`Player ${socket.id} has disconnected from game ${gameId}.`);
@@ -266,12 +301,22 @@ io.on('connection', (socket) => {
         const x = data.x;
         const y = data.y;
         const playerAttacked = data.player_sid;
+        const type = data.type;
         if (games[gameId]) {
-            games[gameId].processAttack(socket.id, playerAttacked, x, y);
+            games[gameId].processAttack(socket.id, playerAttacked, x, y, type);
         } else {
             io.to(socket.id).emit('error_message', { message: 'Partida no encontrada.' });
         }
     });
+
+    socket.on('force_start_game', (data) => {
+        const gameId = data.game_id;
+
+        const game = waitingGames.find(game => game.game_id == gameId);
+        if (game != undefined) {
+            game.startGame();
+        }
+    })
 });
 
 const PORT = process.env.PORT || 3000;

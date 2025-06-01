@@ -6,7 +6,7 @@ import Tablero from "./Tablero";
 import Arsenal from "./Arsenal";
 import { toast } from "react-toastify";
 import Barcos from "./Barcos"; // Importa el nuevo componente Barcos.jsx
-import '../styles/partida.css'; // Asegúrate de tener un archivo CSS para Partida
+import "../styles/partida.css"; // Asegúrate de tener un archivo CSS para Partida
 
 const initialBoard = Array(10)
   .fill(0)
@@ -21,8 +21,10 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [showPlaceShipsButton, setShowPlaceShipsButton] = useState(false); // Botón de posicionar aleatoriamente
-  const [showManualPlacementPanel, setShowManualPlacementPanel] = useState(false); // Nuevo estado para el panel manual
+  const [showManualPlacementPanel, setShowManualPlacementPanel] =
+    useState(false); // Nuevo estado para el panel manual
   const [arsenalSeleccionado, setArsenalSeleccionado] = useState("artilleria");
+  const [waitingOponents, setWaitingOponents] = useState(true);
 
   // Lógica para posicionar barcos aleatoriamente con separación (mantenerla por si acaso)
   const placeShipsRandomly = () => {
@@ -30,13 +32,19 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     const boardSize = 10; // Tamaño del tablero
     const shipSizes = [5, 4, 3, 3, 2]; // Tamaños de los barcos
 
-    const isValidCell = (x, y) => x >= 0 && x < boardSize && y >= 0 && y < boardSize;
+    const isValidCell = (x, y) =>
+      x >= 0 && x < boardSize && y >= 0 && y < boardSize;
 
     const hasAdjacentShip = (board, x, y) => {
       const neighbors = [
-        { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
-        { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-        { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 },
+        { dx: -1, dy: -1 },
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: -1 },
+        { dx: -1, dy: 0 },
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 1 },
+        { dx: 0, dy: 1 },
+        { dx: 1, dy: 1 },
       ];
       for (const neighbor of neighbors) {
         const nx = x + neighbor.dx;
@@ -57,7 +65,8 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
         attempts++;
         const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
         const startX = Math.floor(
-          Math.random() * (boardSize - (orientation === "horizontal" ? size : 0))
+          Math.random() *
+            (boardSize - (orientation === "horizontal" ? size : 0))
         );
         const startY = Math.floor(
           Math.random() * (boardSize - (orientation === "vertical" ? size : 0))
@@ -70,7 +79,11 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
           const currentX = orientation === "horizontal" ? startX + i : startX;
           const currentY = orientation === "vertical" ? startY + i : startY;
 
-          if (!isValidCell(currentX, currentY) || tempBoard[currentY][currentX] === "S" || hasAdjacentShip(tempBoard, currentX, currentY)) {
+          if (
+            !isValidCell(currentX, currentY) ||
+            tempBoard[currentY][currentX] === "S" ||
+            hasAdjacentShip(tempBoard, currentX, currentY)
+          ) {
             canPlace = false;
             break;
           }
@@ -84,7 +97,9 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       }
 
       if (!placed) {
-        console.warn(`No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`);
+        console.warn(
+          `No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`
+        );
       }
     });
 
@@ -111,7 +126,13 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       setMessages("Ya atacaste esta casilla.");
       return;
     }
-    socket.emit("attack", { game_id: gameId, x, y, player_sid });
+    socket.emit("attack", {
+      game_id: gameId,
+      x,
+      y,
+      player_sid,
+      type: arsenalSeleccionado,
+    });
     setIsMyTurn(false); // Asumimos que el turno cambiará
     setMessages("Atacando...");
   };
@@ -133,12 +154,15 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     setShowManualPlacementPanel(false); // Cierra el panel
   };
 
-
   useEffect(() => {
     setMyPlayerId(socket.id);
     socket.on("connect", () => {
       console.log("Conectado al servidor.");
     });
+
+    // socket.onAny((eventName, ...args) => {
+    //   console.log(`Received event ${eventName}`);
+    // });
 
     socket.on("disconnect", () => {
       console.log("Desconectado del servidor.", "red");
@@ -156,6 +180,7 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       setGameId(data.game_id);
       setPlayers(data.players);
       setShowPlaceShipsButton(true);
+      setWaitingOponents(false);
     });
 
     socket.on("game_found", (data) => {
@@ -206,10 +231,12 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       const temp = { ...players };
       temp[player_attacked].board = newBoard;
       setPlayers(temp);
-      if(socket.id == player_attacked){
+      if (socket.id == player_attacked) {
         setMessages(`Tu oponente atacó (${x}, ${y}): ${result}`);
       } else {
-        setMessages(`Atacaron al jugador ${player_attacked} (${x}, ${y}): ${result}`);
+        setMessages(
+          `Atacaron al jugador ${player_attacked} (${x}, ${y}): ${result}`
+        );
       }
     });
 
@@ -225,10 +252,11 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     });
 
     socket.on("player_disconnected", (data) => {
-      // setMessages(data.message);
-      // setIsMyTurn(false);
-      // setGameId(null);
-      // setMyPlayerId(null);
+      setMessages(data.message);
+      setIsMyTurn(false);
+      setGameId(null);
+      setMyPlayerId(null);
+      setWaitingOponents(true);
       console.log(data.message);
     });
 
@@ -281,37 +309,8 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       >
         {messages}
       </div>
-
-      <div className="board-container">
-        <div>
-          <div className="board-label">Tu Tablero</div>
-          <Tablero
-            dataTablero={
-              players[myPlayerId] ? players[myPlayerId].board : myBoard
-            }
-            player_sid={myPlayerId}
-            isMyBoard={true}
-            isMyTurn={isMyTurn}
-            arsenalSeleccionado={arsenalSeleccionado}
-          />
-        </div>
-        {Object.keys(players).length > 1 &&
-          Object.keys(players)
-            .filter((player) => player != myPlayerId)
-            .map((player, index) => (
-              <div key={index}>
-                <div className="board-label">Tablero Enemigo</div>
-                <Tablero
-                  player_sid={player}
-                  dataTablero={players[player].board}
-                  clickHandler={handleAttackClick}
-                  isMyTurn={isMyTurn}
-                  arsenalSeleccionado={arsenalSeleccionado}
-                />
-              </div>
-            ))}
-      </div>
-      <div className="game-area-container"> {/* Nuevo contenedor para el layout */}
+      <div className="game-area-container">
+        {/* Nuevo contenedor para el layout */}
         {showManualPlacementPanel && (
           <Barcos
             myBoard={myBoard}
@@ -319,32 +318,41 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
             onPlacementDone={handleManualPlacementDone}
           />
         )}
-
-        <div className="board-and-controls-container"> {/* Contiene tableros y botones */}
+        <div className="board-and-controls-container">
+          {/* Contiene tableros y botones */}
           <div className="board-container">
             <div>
               <div className="board-label">Tu Tablero</div>
               <Tablero
-                dataTablero={myBoard}
+                dataTablero={
+                  players[myPlayerId] ? players[myPlayerId].board : myBoard
+                }
+                player_sid={myPlayerId}
                 isMyBoard={true}
                 isMyTurn={isMyTurn}
                 arsenalSeleccionado={arsenalSeleccionado}
-                // Pasamos props adicionales para el modo de colocación manual
                 isPlacingShipsManually={showManualPlacementPanel}
                 setMyBoard={setMyBoard} // Permitir que Tablero actualice myBoard
               />
             </div>
             <div>
-              <div className="board-label">Tablero Enemigo</div>
-              <Tablero
-                dataTablero={opponentBoardView}
-                clickHandler={handleAttackClick}
-                isMyTurn={isMyTurn}
-                arsenalSeleccionado={arsenalSeleccionado}
-              />
+              {Object.keys(players).length > 1 &&
+                Object.keys(players)
+                  .filter((player) => player != myPlayerId)
+                  .map((player, index) => (
+                    <div key={index}>
+                      <div className="board-label">Tablero Enemigo</div>
+                      <Tablero
+                        player_sid={player}
+                        dataTablero={players[player].board}
+                        clickHandler={handleAttackClick}
+                        isMyTurn={isMyTurn}
+                        arsenalSeleccionado={arsenalSeleccionado}
+                      />
+                    </div>
+                  ))}
             </div>
           </div>
-
           <div id="controls">
             {showPlaceShipsButton && (
               <>
@@ -356,6 +364,19 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
                 </button>
               </>
             )}
+
+            {waitingOponents &&
+              Object.keys(players).length > 1 &&
+              isCreadorDeSala && (
+                <button
+                  onClick={() =>
+                    socket.emit("force_start_game", { game_id: gameId })
+                  }
+                >
+                  Comenzar Partida
+                </button>
+              )}
+
             {/* Si ya se está en modo manual, se puede añadir un botón de "Finalizar Colocación" aquí
                 que llame a handleManualPlacementDone */}
             {showManualPlacementPanel && (
@@ -364,7 +385,6 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
               </button>
             )}
           </div>
-
           <Arsenal
             arsenalSeleccionado={arsenalSeleccionado}
             setArsenalSeleccionado={setArsenalSeleccionado}

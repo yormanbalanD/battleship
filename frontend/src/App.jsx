@@ -7,7 +7,7 @@ import Partida from "./components/Partida";
 import { ToastContainer } from "react-toastify";
 
 function App() {
-  const [pagina, setPagina] = useState("partida");
+  const [pagina, setPagina] = useState("inicio");
   const [isCreadorDeSala, setIsCreadorDeSala] = useState(false);
   const [maxPlayers, setMaxPlayers] = useState(2);
 
