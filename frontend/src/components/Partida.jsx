@@ -49,6 +49,13 @@ export default function Partida({
   const [arsenalSeleccionado, setArsenalSeleccionado] = useState("artilleria");
   const [waitingOponents, setWaitingOponents] = useState(true);
 
+  const [permitirNuevosJugadores, setPermitirNuevosJugadores] = useState(true);
+
+  const handlePermitirNuevosJugadores = (e) => {
+    setPermitirNuevosJugadores(e.target.checked);
+    
+  };
+
   // Lógica para posicionar barcos aleatoriamente con separación (mantenerla por si acaso)
   const placeShipsRandomly = () => {
     const tempBoard = JSON.parse(JSON.stringify(initialBoard)); // Copia profunda para trabajar
@@ -300,7 +307,26 @@ export default function Partida({
 
   return (
     <div className="App">
-      <h1>Batalla Naval</h1>
+      <h1>
+        Batalla Naval{" "}
+        <label
+          style={{
+            color: "#fff",
+            fontSize: "1.4rem",
+            marginLeft: "1rem",
+          }}
+          htmlFor="permitir_nuevos_jugadores"
+        >
+          <input
+            id="permitir_nuevos_jugadores"
+            type="checkbox"
+            name="permitir_nuevos_jugadores"
+            checked={permitirNuevosJugadores}
+            onChange={handlePermitirNuevosJugadores}
+          />{" "}
+          Permitir nuevos jugador
+        </label>
+      </h1>
       <div
         id="messages"
         onClick={() => {
