@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { io } from "socket.io-client";
+import { socket } from "../socket";
+
 import Tablero from "./Tablero";
 import Arsenal from "./Arsenal";
+import { toast } from "react-toastify";
 
-const socket = io("http://localhost:3000"); // Conecta al servidor Express.js
 const initialBoard = Array(10)
   .fill(0)
   .map(() => Array(10).fill("E")); // 'E' por Empty
 
-export default function Partida({ isCreadorDeSala, setPagina }) {
+export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
   const [messages, setMessages] = useState("");
   const [myBoard, setMyBoard] = useState(initialBoard);
   const [opponentBoardView, setOpponentBoardView] = useState(initialBoard);
+  const [players, setPlayers] = useState({});
   const [gameId, setGameId] = useState(null);
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
@@ -123,11 +125,14 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
   const handlePlaceShips = () => {
     const placedShipsBoard = placeShipsRandomly();
     socket.emit("place_ships", { game_id: gameId, board: placedShipsBoard });
+    const temp = { ...players };
+    temp[myPlayerId].board = placedShipsBoard;
+    setPlayers(temp);
     setMessages("Barcos posicionados. Esperando al oponente...");
     setShowPlaceShipsButton(false);
   };
 
-  const handleAttackClick = (x, y) => {
+  const handleAttackClick = (x, y, player_sid) => {
     if (!isMyTurn) {
       setMessages("No es tu turno.");
       return;
@@ -136,19 +141,19 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
       setMessages("Ya atacaste esta casilla.");
       return;
     }
-    socket.emit("attack", { game_id: gameId, x, y });
+    socket.emit("attack", { game_id: gameId, x, y, player_sid });
     setIsMyTurn(false); // Asumimos que el turno cambiará
     setMessages("Atacando...");
   };
 
   useEffect(() => {
-    return;
+    setMyPlayerId(socket.id);
     socket.on("connect", () => {
-      setMessages("Conectado al servidor.");
+      console.log("Conectado al servidor.");
     });
 
     socket.on("disconnect", () => {
-      setMessages("Desconectado del servidor.", "red");
+      console.log("Desconectado del servidor.", "red");
       setGameId(null);
       setMyPlayerId(null);
       setIsMyTurn(false);
@@ -158,13 +163,30 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
       setMessages(data.message);
     });
 
+    socket.on("game_started", (data) => {
+      setMessages(data.message);
+      setGameId(data.game_id);
+      setPlayers(data.players);
+      setShowPlaceShipsButton(true);
+    });
+
     socket.on("game_found", (data) => {
       setGameId(data.game_id);
       setMyPlayerId(data.player_id);
       setMessages(data.message);
-      setShowPlaceShipsButton(true);
+
+      delete data.players[data.player_id];
+
+      // setEnemigos(data.players);
       setMyBoard(initialBoard); // Resetear mi tablero
       setOpponentBoardView(initialBoard); // Resetear tablero enemigo
+    });
+
+    socket.on("player_connected", (data) => {
+      toast.info(`¡Nuevo jugador conectado!`);
+      setPlayers(data.players);
+      console.log(data);
+      // delete data.players[myPlayerId];
     });
 
     socket.on("ships_placed_ok", () => {
@@ -173,6 +195,7 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
 
     socket.on("game_state_update", (data) => {
       setMessages(data.message);
+      setPlayers(data.players);
     });
 
     socket.on("your_turn", () => {
@@ -186,23 +209,18 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
     });
 
     socket.on("attack_result", (data) => {
-      const { x, y, result } = data;
-      setOpponentBoardView((prevBoard) => {
-        const newBoard = JSON.parse(JSON.stringify(prevBoard));
-        newBoard[y][x] = result === "HIT" ? "X" : "M";
-        return newBoard;
-      });
-      setMessages(`Atacaste (${x}, ${y}): ${result}`);
-    });
+      const { x, y, result, player_attacked } = data;
+      const newBoard = [...players[player_attacked].board];
 
-    socket.on("opponent_attacked", (data) => {
-      const { x, y, result } = data;
-      setMyBoard((prevBoard) => {
-        const newBoard = JSON.parse(JSON.stringify(prevBoard));
-        newBoard[y][x] = result === "HIT" ? "X" : "M";
-        return newBoard;
-      });
-      setMessages(`Tu oponente atacó (${x}, ${y}): ${result}`);
+      newBoard[y][x] = result === "HIT" ? "X" : "M";
+      const temp = { ...players };
+      temp[player_attacked].board = newBoard;
+      setPlayers(temp);
+      if(socket.id == player_attacked){
+        setMessages(`Tu oponente atacó (${x}, ${y}): ${result}`);
+      } else {
+        setMessages(`Atacaron al jugador ${player_attacked} (${x}, ${y}): ${result}`);
+      }
     });
 
     socket.on("game_over", (data) => {
@@ -216,11 +234,12 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
       setMyPlayerId(null);
     });
 
-    socket.on("opponent_disconnected", (data) => {
-      setMessages(data.message);
-      setIsMyTurn(false);
-      setGameId(null);
-      setMyPlayerId(null);
+    socket.on("player_disconnected", (data) => {
+      // setMessages(data.message);
+      // setIsMyTurn(false);
+      // setGameId(null);
+      // setMyPlayerId(null);
+      console.log(data.message);
     });
 
     socket.on("error_message", (data) => {
@@ -245,6 +264,22 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
     };
   }, [myPlayerId, gameId, isMyTurn]); // Dependencias para useEffect
 
+  useEffect(() => {
+    if (isCreadorDeSala) {
+      console.log("Creando partida...");
+      socket.emit("create_game", {
+        owner_sid: myPlayerId,
+        max_players: maxPlayers,
+      });
+    } else {
+      socket.emit("search_game", {});
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log(players);
+  }, [players]);
+
   return (
     <div className="App">
       <h1>Batalla Naval</h1>
@@ -261,22 +296,30 @@ export default function Partida({ isCreadorDeSala, setPagina }) {
         <div>
           <div className="board-label">Tu Tablero</div>
           <Tablero
-            dataTablero={myBoard}
-            // clickHandler={clickHandler}
+            dataTablero={
+              players[myPlayerId] ? players[myPlayerId].board : myBoard
+            }
+            player_sid={myPlayerId}
             isMyBoard={true}
             isMyTurn={isMyTurn}
             arsenalSeleccionado={arsenalSeleccionado}
           />
         </div>
-        <div>
-          <div className="board-label">Tablero Enemigo</div>
-          <Tablero
-            dataTablero={opponentBoardView}
-            clickHandler={handleAttackClick}
-            isMyTurn={isMyTurn}
-            arsenalSeleccionado={arsenalSeleccionado}
-          />
-        </div>
+        {Object.keys(players).length > 1 &&
+          Object.keys(players)
+            .filter((player) => player != myPlayerId)
+            .map((player, index) => (
+              <div key={index}>
+                <div className="board-label">Tablero Enemigo</div>
+                <Tablero
+                  player_sid={player}
+                  dataTablero={players[player].board}
+                  clickHandler={handleAttackClick}
+                  isMyTurn={isMyTurn}
+                  arsenalSeleccionado={arsenalSeleccionado}
+                />
+              </div>
+            ))}
       </div>
 
       <div id="controls">

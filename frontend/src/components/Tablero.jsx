@@ -9,12 +9,13 @@ function RowTablero({
   casillaApuntada,
   setCasillaApuntada,
   arsenalSeleccionado,
+  player_sid
 }) {
   /*background-color: #ffc107;
     border-color: #ffb300; */
 
   const isInRange = (xCell, yCell, type) => {
-    if (casillaApuntada == null || !isMyTurn || type != "E") {
+    if (casillaApuntada == null || !isMyTurn || type != "E" || isMyBoard) {
       return false;
     }
     if (
@@ -107,7 +108,7 @@ function RowTablero({
             key={`${rowIndex}-${colIndex}`}
             className={cellClass}
             onClick={
-              clickHandler ? () => clickHandler(colIndex, rowIndex) : null
+              clickHandler ? () => clickHandler(colIndex, rowIndex, player_sid) : null
             }
             style={{
               backgroundColor: isInRange(rowIndex, colIndex, cell)
@@ -136,6 +137,7 @@ export default function Tablero({
   isMyTurn,
   clickHandler,
   arsenalSeleccionado,
+  player_sid
 }) {
   const [casillaApuntada, setCasillaApuntada] = React.useState(null);
 
@@ -152,6 +154,7 @@ export default function Tablero({
           arsenalSeleccionado={arsenalSeleccionado}
           casillaApuntada={casillaApuntada}
           setCasillaApuntada={setCasillaApuntada}
+          player_sid={player_sid}
         />
       ))}
     </div>

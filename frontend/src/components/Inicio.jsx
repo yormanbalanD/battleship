@@ -1,7 +1,7 @@
 import React from "react";
 import "../styles/inicio.css";
 
-const Inicio = ({ setPagina, setIsCreadorDeSala }) => {
+const Inicio = ({ setPagina, setIsCreadorDeSala, setMaxPlayers }) => {
   const handleBuscarPartida = () => {
     setPagina("partida");
   };
@@ -12,14 +12,16 @@ const Inicio = ({ setPagina, setIsCreadorDeSala }) => {
     );
     numPlayers = parseInt(numPlayers, 10);
 
-    if (isNaN(numPlayers) || numPlayers < 1 || numPlayers > 4) {
+    if (isNaN(numPlayers) || numPlayers < 2 || numPlayers > 4) {
       alert(
-        "Número de jugadores no válido. Por favor, introduce un número entre 1 y 4."
+        "Número de jugadores no válido. Por favor, introduce un número entre 2 y 4."
       );
     } else {
       alert(
         `Creando una partida para ${numPlayers} jugadores. ¡Que empiece la diversión!`
       );
+      setMaxPlayers(numPlayers);
+      setIsCreadorDeSala(true);
       setPagina("partida");
       // En una aplicación real, aquí enviarías esta información a tu backend y navegarías.
     }
