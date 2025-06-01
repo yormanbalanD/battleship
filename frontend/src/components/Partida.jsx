@@ -12,13 +12,36 @@ const initialBoard = Array(10)
   .fill(0)
   .map(() => Array(10).fill("E")); // 'E' por Empty
 
-export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
+const initialPlayer = {
+  board: initialBoard,
+  shipsPlaced: false,
+  hitsReceived: 0,
+  game_over: false,
+  points: 0,
+  cantidadDeCasillasDeBarco: 0,
+};
+
+const arsenales = [
+  { id: "artilleria", name: "Artillería", points: 0 },
+  { id: "radar", name: "Radar", points: 2 },
+  { id: "caza", name: "Caza", points: 7 },
+  { id: "avion", name: "Avión", points: 7 }, // Usa el icono importado para 'chorro.png'
+  { id: "nuke", name: "Bomba Nuclear", points: 10 },
+];
+
+export default function Partida({
+  isCreadorDeSala,
+  setPagina,
+  maxPlayers,
+  myPlayerId,
+}) {
   const [messages, setMessages] = useState("");
   const [myBoard, setMyBoard] = useState(initialBoard);
   const [opponentBoardView, setOpponentBoardView] = useState(initialBoard);
-  const [players, setPlayers] = useState({});
   const [gameId, setGameId] = useState(null);
-  const [myPlayerId, setMyPlayerId] = useState(null);
+  const [players, setPlayers] = useState({
+    [myPlayerId]: { ...initialPlayer },
+  });
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [showPlaceShipsButton, setShowPlaceShipsButton] = useState(false); // Botón de posicionar aleatoriamente
   const [showManualPlacementPanel, setShowManualPlacementPanel] =
@@ -155,22 +178,6 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
   };
 
   useEffect(() => {
-    setMyPlayerId(socket.id);
-    socket.on("connect", () => {
-      console.log("Conectado al servidor.");
-    });
-
-    // socket.onAny((eventName, ...args) => {
-    //   console.log(`Received event ${eventName}`);
-    // });
-
-    socket.on("disconnect", () => {
-      console.log("Desconectado del servidor.", "red");
-      setGameId(null);
-      setMyPlayerId(null);
-      setIsMyTurn(false);
-    });
-
     socket.on("waiting_for_opponent", (data) => {
       setMessages(data.message);
     });
@@ -185,7 +192,6 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
 
     socket.on("game_found", (data) => {
       setGameId(data.game_id);
-      setMyPlayerId(data.player_id);
       setMessages(data.message);
 
       // Cuando se encuentra la partida, mostramos las opciones de posicionamiento
@@ -200,8 +206,6 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     socket.on("player_connected", (data) => {
       toast.info(`¡Nuevo jugador conectado!`);
       setPlayers(data.players);
-      console.log(data);
-      // delete data.players[myPlayerId];
     });
 
     socket.on("ships_placed_ok", () => {
@@ -224,13 +228,15 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     });
 
     socket.on("attack_result", (data) => {
-      const { x, y, result, player_attacked } = data;
-      const newBoard = [...players[player_attacked].board];
+      const { x, y, result, player_attacked, players } = data;
 
-      newBoard[y][x] = result === "HIT" ? "X" : "M";
-      const temp = { ...players };
-      temp[player_attacked].board = newBoard;
-      setPlayers(temp);
+      setPlayers(players);
+      if (
+        players[myPlayerId].points <
+        arsenales.find((arsenal) => arsenal.id == arsenalSeleccionado).points
+      ) {
+        setArsenalSeleccionado("artilleria");
+      }
       if (socket.id == player_attacked) {
         setMessages(`Tu oponente atacó (${x}, ${y}): ${result}`);
       } else {
@@ -241,21 +247,29 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     });
 
     socket.on("game_over", (data) => {
-      const winnerMessage =
-        data.winner_sid === myPlayerId
-          ? "¡Has ganado la partida!"
-          : "Has perdido la partida.";
-      setMessages(`Juego Terminado: ${winnerMessage}`, "purple");
-      setIsMyTurn(false);
-      setGameId(null);
-      setMyPlayerId(null);
+      if (data.player_sid == myPlayerId) {
+        setMessages(`¡Has perdido la partida!`);
+      } else {
+        setMessages(data.message);
+      }
+      setPlayers(data.players);
+    });
+
+    socket.on("game_ended", (data) => {
+      if (data.player_sid == myPlayerId) {
+        alert("¡Has ganado la partida!");
+      } else {
+        setMessages(data.message);
+        alert(data.message);
+      }
+      setPlayers(null);
+      window.location.reload();
     });
 
     socket.on("player_disconnected", (data) => {
       setMessages(data.message);
       setIsMyTurn(false);
       setGameId(null);
-      setMyPlayerId(null);
       setWaitingOponents(true);
       console.log(data.message);
     });
@@ -264,23 +278,13 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       setMessages(`Error: ${data.message}`);
     });
 
+    console.log(myPlayerId);
+
     // Limpieza de event listeners al desmontar el componente
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("waiting_for_opponent");
-      socket.off("game_found");
-      socket.off("ships_placed_ok");
-      socket.off("game_state_update");
-      socket.off("your_turn");
-      socket.off("wait_turn");
-      socket.off("attack_result");
-      socket.off("opponent_attacked");
-      socket.off("game_over");
-      socket.off("opponent_disconnected");
-      socket.off("error_message");
+      socket.offAny();
     };
-  }, [myPlayerId, gameId, isMyTurn]); // Dependencias para useEffect
+  }, [gameId, isMyTurn]); // Dependencias para useEffect
 
   useEffect(() => {
     if (isCreadorDeSala) {
@@ -294,10 +298,6 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     }
   }, []);
 
-  useEffect(() => {
-    console.log(players);
-  }, [players]);
-
   return (
     <div className="App">
       <h1>Batalla Naval</h1>
@@ -310,47 +310,53 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
         {messages}
       </div>
       <div className="game-area-container">
-        {/* Nuevo contenedor para el layout */}
-        {showManualPlacementPanel && (
-          <Barcos
-            myBoard={myBoard}
-            setMyBoard={setMyBoard}
-            onPlacementDone={handleManualPlacementDone}
-          />
-        )}
         <div className="board-and-controls-container">
           {/* Contiene tableros y botones */}
           <div className="board-container">
-            <div>
-              <div className="board-label">Tu Tablero</div>
-              <Tablero
-                dataTablero={
-                  players[myPlayerId] ? players[myPlayerId].board : myBoard
-                }
-                player_sid={myPlayerId}
-                isMyBoard={true}
-                isMyTurn={isMyTurn}
-                arsenalSeleccionado={arsenalSeleccionado}
-                isPlacingShipsManually={showManualPlacementPanel}
-                setMyBoard={setMyBoard} // Permitir que Tablero actualice myBoard
-              />
-            </div>
-            <div>
-              {Object.keys(players).length > 1 &&
-                Object.keys(players)
-                  .filter((player) => player != myPlayerId)
-                  .map((player, index) => (
-                    <div key={index}>
-                      <div className="board-label">Tablero Enemigo</div>
-                      <Tablero
-                        player_sid={player}
-                        dataTablero={players[player].board}
-                        clickHandler={handleAttackClick}
-                        isMyTurn={isMyTurn}
-                        arsenalSeleccionado={arsenalSeleccionado}
-                      />
-                    </div>
-                  ))}
+            <div
+              style={{
+                display: "flex",
+                gap: "50px",
+              }}
+            >
+              {players != null &&
+                Object.keys(players).map((player) => {
+                  if (player != myPlayerId) {
+                    return (
+                      <div key={player}>
+                        <div className="board-label">
+                          Tablero Enemigo ({player})
+                        </div>
+                        <Tablero
+                          player_sid={player}
+                          dataTablero={players[player].board}
+                          clickHandler={handleAttackClick}
+                          isMyTurn={isMyTurn}
+                          arsenalSeleccionado={arsenalSeleccionado}
+                        />
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div key={player}>
+                        <div className="board-label">Tu tablero ({player})</div>
+                        <Tablero
+                          dataTablero={
+                            players[myPlayerId]
+                              ? players[myPlayerId].board
+                              : myBoard
+                          }
+                          player_sid={myPlayerId}
+                          isMyBoard={true}
+                          isMyTurn={isMyTurn}
+                          arsenalSeleccionado={arsenalSeleccionado}
+                          isPlacingShipsManually={showManualPlacementPanel}
+                          setMyBoard={setMyBoard} // Permitir que Tablero actualice myBoard
+                        />
+                      </div>
+                    );
+                  }
+                })}
             </div>
           </div>
           <div id="controls">
@@ -385,10 +391,13 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
               </button>
             )}
           </div>
-          <Arsenal
-            arsenalSeleccionado={arsenalSeleccionado}
-            setArsenalSeleccionado={setArsenalSeleccionado}
-          />
+          {myPlayerId != null && !waitingOponents && !showPlaceShipsButton && (
+            <Arsenal
+              arsenalSeleccionado={arsenalSeleccionado}
+              setArsenalSeleccionado={setArsenalSeleccionado}
+              playerPoints={players[myPlayerId].points}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -32,6 +32,23 @@ const initialBoard = Array(10)
     .fill(0)
     .map(() => Array(10).fill("E"));
 
+const initialPlayer = {
+    board: initialBoard,
+    shipsPlaced: false,
+    hitsReceived: 0,
+    game_over: false,
+    points: 0,
+    cantidadDeCasillasDeBarco: 0,
+}
+
+const arsenales = [
+    { id: "artilleria", name: "Artillería", points: 0 },
+    { id: "radar", name: "Radar", points: 2 },
+    { id: "caza", name: "Caza", points: 7 },
+    { id: "avion", name: "Avión", points: 7 }, // Usa el icono importado para 'chorro.png'
+    { id: "nuke", name: "Bomba Nuclear", points: 10 },
+];
+
 class GameInstance {
     players = {};
 
@@ -47,7 +64,7 @@ class GameInstance {
         this.game_id = uuidv4();
         this.owner_sid = owner_sid
         this.players = {
-            [owner_sid]: { board: initialBoard, shipsPlaced: false, hitsReceived: 0, game_over: false, hitsDealt: 0 },
+            [owner_sid]: { ...initialPlayer },
         };
         this.turnOrder.push(owner_sid);
         this.currentTurn = -1; // O aleatorio
@@ -63,13 +80,7 @@ class GameInstance {
             console.log(`Jugador ${player_sid} conectado en partida ${this.game_id}`);
             io.sockets.sockets.get(player_sid)?.join(this.game_id);
             this.turnOrder.push(player_sid);
-            this.players[player_sid] = {
-                board: initialBoard,
-                shipsPlaced: false,
-                hitsReceived: 0,
-                game_over: false,
-                hitsDealt: 0,
-            }
+            this.players[player_sid] = { ...initialPlayer };
 
             io.to(this.game_id).emit('player_connected', { player_sid, players: this.players });
             io.to(player_sid).emit('game_found', { game_id: this.game_id, player_sid, players: this.players, message: '¡Encontrada una partida!' })
@@ -89,6 +100,18 @@ class GameInstance {
         this.players[player_sid].board = boardData;
         this.players[player_sid].shipsPlaced = true;
         console.log(`Barcos de ${player_sid} posicionados en partida ${this.game_id}`);
+
+        let cantidadDeCasillasDeBarco = 0
+
+        for (let i = 0; i < boardData.length; i++) {
+            for (let j = 0; j < boardData[i].length; j++) {
+                if (boardData[i][j] === 'S') {
+                    cantidadDeCasillasDeBarco += 1;
+                }
+            }
+        }
+        this.players[player_sid].cantidadDeCasillasDeBarco = cantidadDeCasillasDeBarco;
+
 
         io.sockets.sockets.get(player_sid).emit('ships_placed_ok');
 
@@ -131,46 +154,158 @@ class GameInstance {
             return;
         }
 
+        if (this.players[attacker_sid].points < arsenales.find(arsenal => arsenal.id == type).points) {
+            io.sockets.sockets.get(attacker_sid).emit('error_message', { message: 'No tienes suficientes puntos para atacar.' });
+            return;
+        }
+
+        this.players[attacker_sid].points -= arsenales.find(arsenal => arsenal.id == type).points;
+
         const defender_sid = player_attacked;
         const defenderBoard = this.players[defender_sid].board;
 
         let result = "MISS";
+        const casillasAtacadas = []
+
         if (x >= 0 && x < 10 && y >= 0 && y < 10) {
-            if (defenderBoard[y][x] === 'S') { // 'S' representa un barco
-                result = "HIT";
-                defenderBoard[y][x] = 'X'; // Marca como golpeado
-                this.players[defender_sid].hitsReceived += 1;
-                // Aquí iría la lógica para verificar si un barco fue hundido
-            } else if (defenderBoard[y][x] === 'E') { // Evitar re-atacar casillas
-                defenderBoard[y][x] = 'M'; // Marca como fallado
-            } else { // Ya atacado
-                io.sockets.sockets.get(attacker_sid).emit('error_message', { message: 'Ya atacaste esta casilla.' });
-                return;
+            switch (type) {
+                case "artilleria":
+                    if (defenderBoard[y][x] === 'S' || defenderBoard[y][x] === 'L') { // 'S' representa un barco
+                        result = "HIT";
+                        defenderBoard[y][x] = 'X'; // Marca como golpeado
+                        this.players[defender_sid].hitsReceived += 1;
+                        this.players[attacker_sid].points += 1;
+                        // Aquí iría la lógica para verificar si un barco fue hundido
+                    } else if (defenderBoard[y][x] === 'E') { // Evitar re-atacar casillas
+                        defenderBoard[y][x] = 'M'; // Marca como fallado
+                    } else { // Ya atacado
+                        io.sockets.sockets.get(attacker_sid).emit('error_message', { message: 'Ya atacaste esta casilla.' });
+                        return;
+                    }
+                    break;
+                case "nuke":
+                    for (let i = 0; i < defenderBoard.length; i++) {
+                        for (let j = 0; j < defenderBoard[i].length; j++) {
+                            if (defenderBoard[i][j] === 'S' || defenderBoard[i][j] === 'L') { // 'S' representa un barco
+                                defenderBoard[i][j] = 'X'; // Marca como golpeado
+                                this.players[defender_sid].hitsReceived += 1;
+                                casillasAtacadas.push({ x: j, y: i })
+                                this.players[attacker_sid].points += 1;
+                                // Aquí iría la lógica para verificar si un barco fue hundido
+                            } else if (defenderBoard[i][j] === 'E') { // Evitar re-atacar casillas
+                                defenderBoard[i][j] = 'M'; // Marca como fallado
+                            }
+                        }
+                    }
+                    break;
+                case "avion":
+                    const filaCentro = x;
+                    const columnaCentro = y;
+                    const brazoCruz = 2; // Un brazo de 1 significa el centro + 1 casilla en cada dirección
+
+                    // Rangos para el brazo horizontal
+                    const columna_min_h = columnaCentro - brazoCruz;
+                    const columna_max_h = columnaCentro + brazoCruz;
+
+                    // Rangos para el brazo vertical
+                    const fila_min_v = filaCentro - brazoCruz;
+                    const fila_max_v = filaCentro + brazoCruz;
+
+                    for (let i = 0; i < defenderBoard.length; i++) {
+                        for (let j = 0; j < defenderBoard[i].length; j++) {
+
+                            const enBrazoHorizontal =
+                                j === filaCentro &&
+                                i >= columna_min_h &&
+                                i <= columna_max_h;
+
+                            // Verificar si la casilla está en el brazo vertical
+                            const enBrazoVertical =
+                                i === columnaCentro && j >= fila_min_v && j <= fila_max_v;
+
+                            const esEsquinaDiagonal =
+                                (j === filaCentro - 1 && i === columnaCentro - 1) || // Esquina superior izquierda
+                                (j === filaCentro - 1 && i === columnaCentro + 1) || // Esquina superior derecha
+                                (j === filaCentro + 1 && i === columnaCentro - 1) || // Esquina inferior izquierda
+                                (j === filaCentro + 1 && i === columnaCentro + 1);
+                            // Si está en el brazo horizontal O en el brazo vertical, está en la cruz
+                            if (enBrazoHorizontal || enBrazoVertical || esEsquinaDiagonal) {
+                                if (defenderBoard[i][j] === 'S' || defenderBoard[i][j] === 'L') { // 'S' representa un barco
+                                    defenderBoard[i][j] = 'X'; // Marca como golpeado
+                                    this.players[defender_sid].hitsReceived += 1;
+                                    this.players[attacker_sid].points += 1;
+                                    casillasAtacadas.push({ x: j, y: i })
+                                    // Aquí iría la lógica para verificar si un barco fue hundido
+                                } else if (defenderBoard[i][j] === 'E') { // Evitar re-atacar casillas
+                                    defenderBoard[i][j] = 'M'; // Marca como fallado
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case "radar":
+                    for (let i = 0; i < defenderBoard.length; i++) {
+                        for (let j = 0; j < defenderBoard[i].length; j++) {
+                            if (
+                                j > x - 2 &&
+                                j < x + 2 &&
+                                i > y - 2 &&
+                                i < y + 2
+                            ) {
+                                if (defenderBoard[i][j] === 'S') { // 'S' representa un barco
+                                    defenderBoard[i][j] = 'L'; // Marca como looked
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case "caza":
+                    for (let i = 0; i < defenderBoard.length; i++) {
+                        for (let j = 0; j < defenderBoard[i].length; j++) {
+                            if (
+                                i > y - 2 &&
+                                i < y + 2
+                            ) {
+                                if (defenderBoard[i][j] === 'S' || defenderBoard[i][j] === 'L') { // 'S' representa un barco
+                                    defenderBoard[i][j] = 'X'; // Marca como golpeado
+                                    this.players[defender_sid].hitsReceived += 1;
+                                    casillasAtacadas.push({ x: j, y: i })
+                                    this.players[attacker_sid].points += 1;
+                                    // Aquí iría la lógica para verificar si un barco fue hundido
+                                } else if (defenderBoard[i][j] === 'E') { // Evitar re-atacar casillas
+                                    defenderBoard[i][j] = 'M'; // Marca como fallado
+                                }
+                            }
+                        }
+                    }
             }
         } else {
             io.sockets.sockets.get(attacker_sid).emit('error_message', { message: 'Coordenadas de ataque inválidas.' });
             return;
         }
 
+
+        this.players[defender_sid].board = defenderBoard;
+
         io.to(this.game_id).emit('attack_result', { x, y, result, players: this.players, player_attacked });
         console.log(`Ataque de ${attacker_sid} en (${x},${y}): ${result}`);
 
         // Lógica de victoria (ejemplo: 5 hits para ganar)
-        if (false && this.players[defender_sid].hitsReceived >= 5) {
-            this.state = "GAME_OVER";
-            io.to(this.game_id).emit('game_over', { winner_sid: attacker_sid, message: '¡Fin de la partida!' });
-            console.log(`Partida ${this.game_id} terminada. Ganador: ${attacker_sid}`);
-            delete games[this.game_id]; // Limpiar la partida del diccionario global
-            io.sockets.sockets.get(this.player0_sid)?.leave(this.game_id);
-            io.sockets.sockets.get(this.player1_sid)?.leave(this.game_id);
-            return;
+        console.log(`Cantidad de casillas de barco de ${defender_sid}: ${this.players[defender_sid].cantidadDeCasillasDeBarco}`);
+        console.log(`Hits recibidos de ${defender_sid}: ${this.players[defender_sid].hitsReceived}`);
+        if (this.players[defender_sid].cantidadDeCasillasDeBarco <= this.players[defender_sid].hitsReceived) {
+            this.gameOver(defender_sid);
         }
 
         // Cambiar turno
-        this.notifyTurn();
+        if (this.state == "PLAYING") {
+            this.notifyTurn();
+        }
     }
 
     disconnectPlayer(player_sid) {
+        this.gameOver(player_sid);
+
         if (this.players[player_sid]) {
             delete this.players[player_sid];
             this.players_conectados -= 1;
@@ -200,6 +335,27 @@ class GameInstance {
         this.state = "PLAYING";
         io.to(this.game_id).emit('game_started', { game_id: this.game_id, message: '¡Empezamos la partida! Posiciona tus barcos.', players: this.players });
         // this.notifyTurn();
+    }
+
+    winGame(player_sid) {
+        console.log(`Jugador ${player_sid} ha ganado la partida.`);
+        this.state = "GAME_OVER";
+        io.to(this.game_id).emit('game_ended', { message: `¡El jugador ${player_sid} ha ganado!`, players: this.players, player_sid });
+        delete games[this.game_id]; // Limpiar la partida del diccionario global
+    }
+
+    gameOver(player_sid) {
+        this.players[player_sid].game_over = true;
+        const index = this.turnOrder.indexOf(player_sid);
+
+        this.turnOrder.splice(index, 1);
+
+        if (this.turnOrder.length > 1) {
+            console.log(`Jugador ${player_sid} ha terminado la partida.`);
+            io.to(this.game_id).emit('game_over', { message: `¡El jugador ${player_sid} ha perdido!`, players: this.players, player_sid });
+        } else {
+            this.winGame(this.turnOrder[0]);
+        }
     }
 }
 

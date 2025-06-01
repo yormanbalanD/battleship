@@ -27,10 +27,11 @@ function Cell({
   let cellClass = "cell";
   if (isMyBoard) {
     if (cellData === "S") cellClass += " ship";
-    if (cellData === "L") cellClass += " looked";
+    if (cellData === "L") cellClass += " ship lookedm";
     if (cellData === "X") cellClass += " hit"; // Tu barco golpeado
     if (cellData === "M") cellClass += " miss"; // Tu casilla fallada
   } else {
+    if (cellData === "L") cellClass += " looked";
     if (cellData === "X") cellClass += " hit"; // Oponente golpeado
     if (cellData === "M") cellClass += " miss"; // Oponente fallado
     // if (isMyTurn && cellData === "E") cellClass += " targettable"; // Solo atacable si es tu turno y no ha sido atacada
@@ -39,7 +40,7 @@ function Cell({
   // Lógica para resaltar celdas en modo de ataque (existente)
   const isInRange = (xCell, yCell, type) => {
     // ... tu lógica existente para isInRange
-    if (casillaApuntada == null || !isMyTurn || type != "E" || isMyBoard) {
+    if (casillaApuntada == null || !isMyTurn || type == "M" || type == "X" || isMyBoard) {
       return false;
     }
     if (
@@ -97,10 +98,8 @@ function Cell({
 
     if (
       arsenalSeleccionado === "caza" &&
-      xCell > casillaApuntada.row - 3 &&
-      xCell < casillaApuntada.row + 3 &&
-      yCell > casillaApuntada.col - 1 &&
-      yCell < casillaApuntada.col + 1
+      xCell > casillaApuntada.row - 2 &&
+      xCell < casillaApuntada.row + 2
     ) {
       return true;
     }

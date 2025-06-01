@@ -43,6 +43,13 @@
     transition: background-color 0.2s ease;
 }
 
+.cell.looked {
+    background-color: #cdcdcd; /* Amarillo para apuntar */
+}
+.cell.lookedm {
+    border: 1px solid #cdcdcd; /* Amarillo para apuntar */
+}
+
 .cell.targettable:hover {
     background-color: #ffc107; /* Amarillo para apuntar */
 }
