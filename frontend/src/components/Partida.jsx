@@ -1,9 +1,12 @@
+// Partida.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { socket } from "../socket";
 
 import Tablero from "./Tablero";
 import Arsenal from "./Arsenal";
 import { toast } from "react-toastify";
+import Barcos from "./Barcos"; // Importa el nuevo componente Barcos.jsx
+import '../styles/partida.css'; // Asegúrate de tener un archivo CSS para Partida
 
 const initialBoard = Array(10)
   .fill(0)
@@ -17,104 +20,71 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
   const [gameId, setGameId] = useState(null);
   const [myPlayerId, setMyPlayerId] = useState(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
-  const [showPlaceShipsButton, setShowPlaceShipsButton] = useState(false);
+  const [showPlaceShipsButton, setShowPlaceShipsButton] = useState(false); // Botón de posicionar aleatoriamente
+  const [showManualPlacementPanel, setShowManualPlacementPanel] = useState(false); // Nuevo estado para el panel manual
   const [arsenalSeleccionado, setArsenalSeleccionado] = useState("artilleria");
 
-  // Lógica para posicionar barcos aleatoriamente con separación
+  // Lógica para posicionar barcos aleatoriamente con separación (mantenerla por si acaso)
   const placeShipsRandomly = () => {
     const tempBoard = JSON.parse(JSON.stringify(initialBoard)); // Copia profunda para trabajar
     const boardSize = 10; // Tamaño del tablero
     const shipSizes = [5, 4, 3, 3, 2]; // Tamaños de los barcos
 
-    // Función auxiliar para verificar si una celda está dentro de los límites del tablero
-    const isValidCell = (x, y) => {
-      return x >= 0 && x < boardSize && y >= 0 && y < boardSize;
-    };
+    const isValidCell = (x, y) => x >= 0 && x < boardSize && y >= 0 && y < boardSize;
 
-    // Función auxiliar para verificar si alguna casilla adyacente (incluyendo diagonales) ya está ocupada por un barco
     const hasAdjacentShip = (board, x, y) => {
-      // Definir los 8 vecinos (incluyendo diagonales)
       const neighbors = [
-        { dx: -1, dy: -1 },
-        { dx: 0, dy: -1 },
-        { dx: 1, dy: -1 }, // Arriba-Izquierda, Arriba, Arriba-Derecha
-        { dx: -1, dy: 0 },
-        { dx: 1, dy: 0 }, // Izquierda, Derecha
-        { dx: -1, dy: 1 },
-        { dx: 0, dy: 1 },
-        { dx: 1, dy: 1 }, // Abajo-Izquierda, Abajo, Abajo-Derecha
+        { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+        { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+        { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 },
       ];
-
       for (const neighbor of neighbors) {
         const nx = x + neighbor.dx;
         const ny = y + neighbor.dy;
-
-        // Si la celda vecina es válida y está ocupada por un barco
         if (isValidCell(nx, ny) && board[ny][nx] === "S") {
-          return true; // Se encontró un barco adyacente
+          return true;
         }
       }
-      return false; // No se encontraron barcos adyacentes
+      return false;
     };
 
     shipSizes.forEach((size) => {
       let placed = false;
-      let attempts = 0; // Para evitar bucles infinitos si no se puede colocar
-      const maxAttempts = 1000; // Límite de intentos por barco
+      let attempts = 0;
+      const maxAttempts = 1000;
 
       while (!placed && attempts < maxAttempts) {
         attempts++;
         const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
         const startX = Math.floor(
-          Math.random() *
-            (boardSize - (orientation === "horizontal" ? size : 0))
+          Math.random() * (boardSize - (orientation === "horizontal" ? size : 0))
         );
         const startY = Math.floor(
           Math.random() * (boardSize - (orientation === "vertical" ? size : 0))
         );
 
         let canPlace = true;
-        let cellsToOccupy = []; // Celdas que el barco intentaría ocupar
+        let cellsToOccupy = [];
 
         for (let i = 0; i < size; i++) {
           const currentX = orientation === "horizontal" ? startX + i : startX;
           const currentY = orientation === "vertical" ? startY + i : startY;
 
-          // 1. Verificar límites del tablero
-          if (!isValidCell(currentX, currentY)) {
+          if (!isValidCell(currentX, currentY) || tempBoard[currentY][currentX] === "S" || hasAdjacentShip(tempBoard, currentX, currentY)) {
             canPlace = false;
             break;
           }
-
-          // 2. Verificar que la casilla no esté ya ocupada por otro barco
-          if (tempBoard[currentY][currentX] === "S") {
-            canPlace = false;
-            break;
-          }
-
-          // 3. **Verificar que NO haya barcos adyacentes a esta celda**
-          if (hasAdjacentShip(tempBoard, currentX, currentY)) {
-            canPlace = false;
-            break;
-          }
-
           cellsToOccupy.push({ x: currentX, y: currentY });
         }
 
-        // Si todas las verificaciones pasaron, colocamos el barco
         if (canPlace) {
           cellsToOccupy.forEach((cell) => (tempBoard[cell.y][cell.x] = "S"));
           placed = true;
         }
       }
 
-      // Opcional: Manejar el caso si no se pudo colocar un barco después de muchos intentos
       if (!placed) {
-        console.warn(
-          `No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`
-        );
-        // Podrías lanzar un error, intentar de nuevo con un tablero limpio,
-        // o simplemente continuar sin ese barco. Para juegos simples, una advertencia es suficiente.
+        console.warn(`No se pudo colocar el barco de tamaño ${size} después de ${maxAttempts} intentos.`);
       }
     });
 
@@ -122,7 +92,7 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     return tempBoard;
   };
 
-  const handlePlaceShips = () => {
+  const handlePlaceShipsRandomly = () => {
     const placedShipsBoard = placeShipsRandomly();
     socket.emit("place_ships", { game_id: gameId, board: placedShipsBoard });
     const temp = { ...players };
@@ -145,6 +115,24 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
     setIsMyTurn(false); // Asumimos que el turno cambiará
     setMessages("Atacando...");
   };
+
+  const handleManualPlacement = () => {
+    // Al hacer clic en "Colocar Barcos Manualmente", mostramos el panel y reseteamos el tablero si no tiene barcos
+    // Puedes decidir si quieres resetear el tablero o permitir modificar los existentes
+    // Por simplicidad, aquí asumimos que reseteas para una nueva colocación manual.
+    setMyBoard(initialBoard);
+    setShowManualPlacementPanel(true);
+    setShowPlaceShipsButton(false); // Oculta el botón de aleatorio
+    setMessages("Coloca tus barcos manualmente en tu tablero.");
+  };
+
+  // Función para cuando la colocación manual esté terminada
+  const handleManualPlacementDone = (finalBoard) => {
+    socket.emit("place_ships", { game_id: gameId, board: finalBoard });
+    setMessages("Barcos posicionados manualmente. Esperando al oponente...");
+    setShowManualPlacementPanel(false); // Cierra el panel
+  };
+
 
   useEffect(() => {
     setMyPlayerId(socket.id);
@@ -175,9 +163,11 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
       setMyPlayerId(data.player_id);
       setMessages(data.message);
 
+      // Cuando se encuentra la partida, mostramos las opciones de posicionamiento
       delete data.players[data.player_id];
 
-      // setEnemigos(data.players);
+      // setEnemigos(data.players); // Muestra el botón de aleatorio
+      setShowManualPlacementPanel(false); // Asegura que el panel manual esté oculto inicialmente
       setMyBoard(initialBoard); // Resetear mi tablero
       setOpponentBoardView(initialBoard); // Resetear tablero enemigo
     });
@@ -321,19 +311,66 @@ export default function Partida({ isCreadorDeSala, setPagina, maxPlayers }) {
               </div>
             ))}
       </div>
-
-      <div id="controls">
-        {showPlaceShipsButton && (
-          <button onClick={handlePlaceShips}>
-            Posicionar Barcos Aleatoriamente
-          </button>
+      <div className="game-area-container"> {/* Nuevo contenedor para el layout */}
+        {showManualPlacementPanel && (
+          <Barcos
+            myBoard={myBoard}
+            setMyBoard={setMyBoard}
+            onPlacementDone={handleManualPlacementDone}
+          />
         )}
-      </div>
 
-      <Arsenal
-        arsenalSeleccionado={arsenalSeleccionado}
-        setArsenalSeleccionado={setArsenalSeleccionado}
-      />
+        <div className="board-and-controls-container"> {/* Contiene tableros y botones */}
+          <div className="board-container">
+            <div>
+              <div className="board-label">Tu Tablero</div>
+              <Tablero
+                dataTablero={myBoard}
+                isMyBoard={true}
+                isMyTurn={isMyTurn}
+                arsenalSeleccionado={arsenalSeleccionado}
+                // Pasamos props adicionales para el modo de colocación manual
+                isPlacingShipsManually={showManualPlacementPanel}
+                setMyBoard={setMyBoard} // Permitir que Tablero actualice myBoard
+              />
+            </div>
+            <div>
+              <div className="board-label">Tablero Enemigo</div>
+              <Tablero
+                dataTablero={opponentBoardView}
+                clickHandler={handleAttackClick}
+                isMyTurn={isMyTurn}
+                arsenalSeleccionado={arsenalSeleccionado}
+              />
+            </div>
+          </div>
+
+          <div id="controls">
+            {showPlaceShipsButton && (
+              <>
+                <button onClick={handlePlaceShipsRandomly}>
+                  Posicionar Barcos Aleatoriamente
+                </button>
+                <button onClick={handleManualPlacement}>
+                  Colocar Barcos Manualmente
+                </button>
+              </>
+            )}
+            {/* Si ya se está en modo manual, se puede añadir un botón de "Finalizar Colocación" aquí
+                que llame a handleManualPlacementDone */}
+            {showManualPlacementPanel && (
+              <button onClick={() => handleManualPlacementDone(myBoard)}>
+                Finalizar Colocación Manual
+              </button>
+            )}
+          </div>
+
+          <Arsenal
+            arsenalSeleccionado={arsenalSeleccionado}
+            setArsenalSeleccionado={setArsenalSeleccionado}
+          />
+        </div>
+      </div>
     </div>
   );
 }

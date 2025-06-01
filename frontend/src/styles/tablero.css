@@ -1,0 +1,54 @@
+/* Tablero.css */
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 40px); /* 10 columnas de 40px */
+    grid-template-rows: repeat(10, 40px);    /* 10 filas de 40px */
+    border: 2px solid #61dafb;
+    background-color: #3a3f4c;
+    box-shadow: 0 0 15px rgba(97, 218, 251, 0.5);
+}
+
+.board-row {
+    display: contents; /* Permite que las celdas se coloquen directamente en la grilla del tablero */
+}
+
+.cell {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #444;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+    color: #eee;
+    box-sizing: border-box; /* Asegura que el padding/border no aumenten el tamaño */
+}
+
+.cell.ship {
+    background-color: #007bff; /* Barco no golpeado */
+}
+
+.cell.hit {
+    background-color: #dc3545; /* Golpeado (rojo) */
+    color: white;
+}
+
+.cell.miss {
+    background-color: #6c757d; /* Fallado (gris) */
+    color: white;
+}
+
+.cell.targettable {
+    cursor: crosshair;
+    transition: background-color 0.2s ease;
+}
+
+.cell.targettable:hover {
+    background-color: #ffc107; /* Amarillo para apuntar */
+}
+
+/* Nuevo estilo para la previsualización del barco al arrastrar */
+.cell.ship-preview {
+    background-color: rgba(0, 255, 0, 0.5); /* Verde semi-transparente para previsualización */
+    border: 1px dashed #0f0;
+}

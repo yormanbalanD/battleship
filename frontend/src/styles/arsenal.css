@@ -16,7 +16,7 @@
 }
 
 h2 {
-  color: #7289da;
+  color: #61dafb;
   margin-bottom: 25px;
   font-size: 1.8em;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
@@ -107,7 +107,7 @@ h2 {
 }
 
 .selected-info .selected-item {
-  color: #7289da;
+  color: #61dafb;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
