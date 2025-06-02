@@ -44,9 +44,9 @@ const initialPlayer = {
 const arsenales = [
     { id: "artilleria", name: "Artillería", points: 0 },
     { id: "radar", name: "Radar", points: 2 },
-    { id: "caza", name: "Caza", points: 7 },
-    { id: "avion", name: "Avión", points: 7 }, // Usa el icono importado para 'chorro.png'
-    { id: "nuke", name: "Bomba Nuclear", points: 10 },
+    { id: "caza", name: "Caza", points: 3 },
+    { id: "avion", name: "Avión", points: 3 }, // Usa el icono importado para 'chorro.png'
+    { id: "nuke", name: "Bomba Nuclear", points: 5 },
 ];
 
 class GameInstance {

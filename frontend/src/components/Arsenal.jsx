@@ -17,9 +17,9 @@ const ArsenalPanel = ({
   const arsenales = [
     { id: "artilleria", name: "Artillería", icon: ArtilleriaIcon, points: 0 },
     { id: "radar", name: "Radar", icon: RadarIcon, points: 2 },
-    { id: "caza", name: "Caza", icon: CazaIcon, points: 7 },
-    { id: "avion", name: "Avión", icon: AvionIcon, points: 7 }, // Usa el icono importado para 'chorro.png'
-    { id: "nuke", name: "Bomba Nuclear", icon: NukeIcon, points: 10 },
+    { id: "caza", name: "Caza", icon: CazaIcon, points: 3 },
+    { id: "avion", name: "Avión", icon: AvionIcon, points: 3 }, // Usa el icono importado para 'chorro.png'
+    { id: "nuke", name: "Bomba Nuclear", icon: NukeIcon, points: 5 },
   ];
 
   // Función para manejar el clic en un botón de arsenal
