@@ -13,7 +13,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://localhost:10000", // URL de tu frontend React (Vite)
+        origin: "*", // URL de tu frontend React (Vite)
         methods: ["GET", "POST"]
     }
 });
