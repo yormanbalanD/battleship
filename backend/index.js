@@ -20,13 +20,13 @@ const io = new Server(server, {
 
 // --- Estructuras de datos del juego ---
 
-const games = {}; // {game_id: GameInstance}
-const waitingPlayers = []; // Lista de IDs de socket de jugadores esperando
+let games = {}; // {game_id: GameInstance}
+let waitingPlayers = []; // Lista de IDs de socket de jugadores esperando
 
 /**
  * @type {GameInstance[]}
  */
-const waitingGames = []; // Lista de IDs de socket de jugadores esperando
+let waitingGames = []; // Lista de IDs de socket de jugadores esperando
 
 const initialBoard = Array(10)
     .fill(0)
@@ -70,8 +70,9 @@ class GameInstance {
         this.currentTurn = -1; // O aleatorio
         this.max_players = max_players;
         this.players_conectados = 1;
-        this.state = "WAITING_FOR_BOARDS";
+        this.state = "WAITING";
         console.log(`Se creo la partida ${this.game_id} con ${max_players} jugadores.`);
+        this.busqueda_activa = true
     }
 
     playerConected(player_sid) {
@@ -82,13 +83,20 @@ class GameInstance {
             this.turnOrder.push(player_sid);
             this.players[player_sid] = { ...initialPlayer };
 
-            io.to(this.game_id).emit('player_connected', { player_sid, players: this.players });
-            io.to(player_sid).emit('game_found', { game_id: this.game_id, player_sid, players: this.players, message: '¡Encontrada una partida!' })
+            io.to(this.game_id).emit('player_connected', { player_sid, players: this.players, game_id: this.game_id });
+            io.to(player_sid).emit('game_found', { game_id: this.game_id, player_sid, players: this.players, message: '¡Encontrada una partida!', partidaEnCurso: this.state == "PLAYING" || this.state == "WAITING_FOR_BOARDS" })
 
-            if (this.players_conectados >= this.max_players) {
+            if (this.players_conectados >= this.max_players && this.state == "WAITING") {
                 this.startGame();
             }
         }
+    }
+
+    finishAllShipsPlaced() {
+        this.state = "PLAYING";
+        io.to(this.game_id).emit('game_state_update', { players: this.players, state: 'PLAYING', message: 'Todos Los jugadores han posicionado sus barcos. ¡Comienza el juego!' });
+        console.log("Game state updated to PLAYING");
+        this.notifyTurn();
     }
 
     placeShips(player_sid, boardData) {
@@ -125,15 +133,12 @@ class GameInstance {
         }
 
         if (allShipsPlaced) {
-            this.state = "PLAYING";
-            io.to(this.game_id).emit('game_state_update', { players: this.players, state: 'PLAYING', message: 'Todos Los jugadores han posicionado sus barcos. ¡Comienza el juego!' });
-            console.log("Game state updated to PLAYING");
-            this.notifyTurn();
+            this.finishAllShipsPlaced();
         }
     }
 
     notifyTurn() {
-        if (this.currentTurn === this.turnOrder.length - 1) {
+        if (this.currentTurn == this.turnOrder.length - 1) {
             this.currentTurn = 0;
         } else {
             this.currentTurn += 1;
@@ -304,7 +309,9 @@ class GameInstance {
     }
 
     disconnectPlayer(player_sid) {
-        this.gameOver(player_sid);
+        if (this.state == "PLAYING" || this.state == "WAITING_FOR_BOARDS") {
+            this.gameOver(player_sid);
+        }
 
         if (this.players[player_sid]) {
             delete this.players[player_sid];
@@ -313,7 +320,7 @@ class GameInstance {
         }
 
         if (this.players_conectados == 0) {
-            if (this.state == "PLAYING") {
+            if (this.state == "PLAYING" || this.state == "WAITING_FOR_BOARDS") {
                 delete games[this.game_id];
             } else {
                 const index = waitingGames.findIndex((game) => game.game_id == this.game_id);
@@ -324,6 +331,20 @@ class GameInstance {
 
             console.log(`Juego ${this.game_id} terminado.`);
         }
+
+        if (this.state == "WAITING_FOR_BOARDS") {
+            let allShipsPlaced = true
+            for (const player in this.players) {
+                if (!this.players[player].shipsPlaced) {
+                    allShipsPlaced = false;
+                    break;
+                }
+            }
+
+            if (allShipsPlaced) {
+                this.finishAllShipsPlaced();
+            }
+        }
     }
 
     startGame() {
@@ -332,9 +353,8 @@ class GameInstance {
         games[this.game_id] = this;
         waitingGames.splice(gameIndex, 1);
 
-        this.state = "PLAYING";
+        this.state = "WAITING_FOR_BOARDS";
         io.to(this.game_id).emit('game_started', { game_id: this.game_id, message: '¡Empezamos la partida! Posiciona tus barcos.', players: this.players });
-        // this.notifyTurn();
     }
 
     winGame(player_sid) {
@@ -347,8 +367,11 @@ class GameInstance {
     gameOver(player_sid) {
         this.players[player_sid].game_over = true;
         const index = this.turnOrder.indexOf(player_sid);
-
         this.turnOrder.splice(index, 1);
+
+        if (this.turnOrder[this.currentTurn] == player_sid) {
+            this.notifyTurn()
+        }
 
         if (this.turnOrder.length > 1) {
             console.log(`Jugador ${player_sid} ha terminado la partida.`);
@@ -406,6 +429,20 @@ io.on('connection', (socket) => {
             return
         }
 
+        if (Object.keys(games).length >= 1) {
+            for (const gameId in games) {
+                const game = games[gameId];
+                if (game.max_players == game.players_conectados) {
+                    continue;
+                }
+
+                if (game.busqueda_activa) {
+                    game.playerConected(socket.id)
+                    return
+                }
+            }
+        }
+
         waitingPlayers.push(socket.id);
     })
 
@@ -421,7 +458,7 @@ io.on('connection', (socket) => {
             if (game.players[socket.id] != undefined) {
                 game.disconnectPlayer(socket.id);
                 socket.leave(game.game_id);
-                io.to(game.game_id).emit('player_disconnected', { message: 'Un jugador se ha desconectado.' });
+                io.to(game.game_id).emit('player_disconnected', { message: 'Un jugador se ha desconectado.', players: game.players });
             }
         })
 
@@ -436,7 +473,7 @@ io.on('connection', (socket) => {
                 // Limpiar la partida
                 // delete games[gameId];
                 socket.leave(gameId);
-                io.to(gameId).emit('player_disconnected', { message: 'Un jugador se ha desconectado.' });
+                io.to(gameId).emit('player_disconnected', { message: 'Un jugador se ha desconectado.', players: game.players });
                 break;
             }
         }
@@ -467,11 +504,26 @@ io.on('connection', (socket) => {
 
     socket.on('force_start_game', (data) => {
         const gameId = data.game_id;
-
+        console.log(`Jugador ${socket.id} ha forzado la partida ${gameId} a comenzar.`);
         const game = waitingGames.find(game => game.game_id == gameId);
         if (game != undefined) {
             game.startGame();
         }
+    })
+
+    socket.on('permitir_nuevos_jugadores', (data) => {
+        const gameId = data.game_id;
+        const permitir = data.permitir;
+
+        games[gameId].busqueda_activa = permitir;
+    })
+
+    socket.on('restart_server', () => {
+        console.log("Reiniciando servidor...");
+        games = {};
+        waitingGames = [];
+        waitingPlayers = [];
+        io.sockets.emit('restart_server');
     })
 });
 

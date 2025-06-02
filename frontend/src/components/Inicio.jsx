@@ -1,5 +1,7 @@
 import React from "react";
 import "../styles/inicio.css";
+import cargar from "../icon/cargando-flechas.png";
+import { socket } from "../socket";
 
 const Inicio = ({ setPagina, setIsCreadorDeSala, setMaxPlayers }) => {
   const handleBuscarPartida = () => {
@@ -29,6 +31,28 @@ const Inicio = ({ setPagina, setIsCreadorDeSala, setMaxPlayers }) => {
 
   return (
     <div className="inicio-container">
+        <div
+        
+          style={{
+            position: "absolute",
+            top: "15px",
+            left: "15px",
+            backgroundColor: "blue",
+            color: "white",
+            display: "flex",
+            padding: "5px 10px",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "10px",
+          }}
+          onClick={() => {
+            socket.emit("restart_server");
+          }}
+        >
+          <img style={{
+          }} src={cargar} alt="Logo" width="35px" height="35px" />
+          <h3>Reiniciar Datos Del Servidor</h3>
+        </div>
       {/* Nuevo div para el panel */}
       <div className="panel">
         <h1 className="game-title">BATTLESHIP</h1>

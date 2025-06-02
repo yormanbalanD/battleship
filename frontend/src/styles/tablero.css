@@ -8,6 +8,15 @@
     box-shadow: 0 0 15px rgba(97, 218, 251, 0.5);
 }
 
+.meboard {
+    display: grid;
+    grid-template-columns: repeat(10, 40px); /* 10 columnas de 40px */
+    grid-template-rows: repeat(10, 40px);    /* 10 filas de 40px */
+    border: 2px solid #61dafb;
+    background-color: #3a3f4c;
+    box-shadow: 0 0 15px 5px rgba(255, 193, 7, 0.4);
+}
+
 .board-row {
     display: contents; /* Permite que las celdas se coloquen directamente en la grilla del tablero */
 }

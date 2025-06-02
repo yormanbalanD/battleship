@@ -25,6 +25,11 @@ function App() {
     socket.on("disconnect", () => {
       console.log("Desconectado del servidor.", "red");
     });
+
+    socket.on("restart_server", () => {
+      alert("Servidor reiniciado.");
+      window.location.reload();
+    });
   });
 
   if (pagina === "inicio") {

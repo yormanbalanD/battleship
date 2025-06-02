@@ -351,7 +351,7 @@ export default function Tablero({
 
   return (
     <div
-      className="board"
+      className={ !isMyBoard ? "board" : "meboard"}
       onMouseLeave={() => {
         setCasillaApuntada(null);
         if (isPlacingShipsManually) setDraggingShip(null); // Limpiar drag si sales del tablero en modo manual

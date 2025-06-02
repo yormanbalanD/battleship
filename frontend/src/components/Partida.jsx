@@ -53,7 +53,7 @@ export default function Partida({
 
   const handlePermitirNuevosJugadores = (e) => {
     setPermitirNuevosJugadores(e.target.checked);
-    
+    socket.emit("permitir_nuevos_jugadores", { permitir: e.target.checked, game_id: gameId });
   };
 
   // Lógica para posicionar barcos aleatoriamente con separación (mantenerla por si acaso)
@@ -208,11 +208,17 @@ export default function Partida({
       setShowManualPlacementPanel(false); // Asegura que el panel manual esté oculto inicialmente
       setMyBoard(initialBoard); // Resetear mi tablero
       setOpponentBoardView(initialBoard); // Resetear tablero enemigo
+
+      if(data.partidaEnCurso) {
+        setWaitingOponents(false);
+        setShowPlaceShipsButton(true);
+      }
     });
 
     socket.on("player_connected", (data) => {
       toast.info(`¡Nuevo jugador conectado!`);
       setPlayers(data.players);
+      setGameId(data.game_id);
     });
 
     socket.on("ships_placed_ok", () => {
@@ -222,9 +228,11 @@ export default function Partida({
     socket.on("game_state_update", (data) => {
       setMessages(data.message);
       setPlayers(data.players);
+      console.log(data.message);
     });
 
     socket.on("your_turn", () => {
+      console.log("Tu turno");
       setIsMyTurn(true);
       setMessages("¡Es tu turno! Ataca el tablero enemigo.");
     });
@@ -275,17 +283,13 @@ export default function Partida({
 
     socket.on("player_disconnected", (data) => {
       setMessages(data.message);
-      setIsMyTurn(false);
-      setGameId(null);
-      setWaitingOponents(true);
+      setPlayers(data.players);
       console.log(data.message);
     });
 
     socket.on("error_message", (data) => {
       setMessages(`Error: ${data.message}`);
     });
-
-    console.log(myPlayerId);
 
     // Limpieza de event listeners al desmontar el componente
     return () => {
@@ -309,23 +313,25 @@ export default function Partida({
     <div className="App">
       <h1>
         Batalla Naval{" "}
-        <label
-          style={{
-            color: "#fff",
-            fontSize: "1.4rem",
-            marginLeft: "1rem",
-          }}
-          htmlFor="permitir_nuevos_jugadores"
-        >
-          <input
-            id="permitir_nuevos_jugadores"
-            type="checkbox"
-            name="permitir_nuevos_jugadores"
-            checked={permitirNuevosJugadores}
-            onChange={handlePermitirNuevosJugadores}
-          />{" "}
-          Permitir nuevos jugador
-        </label>
+        {isCreadorDeSala && (
+          <label
+            style={{
+              color: "#fff",
+              fontSize: "1.4rem",
+              marginLeft: "1rem",
+            }}
+            htmlFor="permitir_nuevos_jugadores"
+          >
+            <input
+              id="permitir_nuevos_jugadores"
+              type="checkbox"
+              name="permitir_nuevos_jugadores"
+              checked={permitirNuevosJugadores}
+              onChange={handlePermitirNuevosJugadores}
+            />{" "}
+            Permitir nuevos jugador
+          </label>
+        )}
       </h1>
       <div
         id="messages"
@@ -391,9 +397,6 @@ export default function Partida({
                 <button onClick={handlePlaceShipsRandomly}>
                   Posicionar Barcos Aleatoriamente
                 </button>
-                <button onClick={handleManualPlacement}>
-                  Colocar Barcos Manualmente
-                </button>
               </>
             )}
 
@@ -408,14 +411,6 @@ export default function Partida({
                   Comenzar Partida
                 </button>
               )}
-
-            {/* Si ya se está en modo manual, se puede añadir un botón de "Finalizar Colocación" aquí
-                que llame a handleManualPlacementDone */}
-            {showManualPlacementPanel && (
-              <button onClick={() => handleManualPlacementDone(myBoard)}>
-                Finalizar Colocación Manual
-              </button>
-            )}
           </div>
           {myPlayerId != null && !waitingOponents && !showPlaceShipsButton && (
             <Arsenal
