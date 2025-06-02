@@ -13,7 +13,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // URL de tu frontend React (Vite)
+        origin: "https://localhost:10000", // URL de tu frontend React (Vite)
         methods: ["GET", "POST"]
     }
 });
@@ -534,7 +534,7 @@ io.on('connection', (socket) => {
     })
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 10000;
 server.listen(PORT, () => {
     console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
