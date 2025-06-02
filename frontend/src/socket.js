@@ -1,4 +1,4 @@
 import { io } from 'socket.io-client';
 
 
-export const socket = io(`http://localhost:10000`);
+export const socket = io(process.env.PORT ? `http://localhost:${process.env.PORT}` : 'http://localhost:3000');
